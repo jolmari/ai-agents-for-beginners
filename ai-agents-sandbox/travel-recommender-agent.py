@@ -29,6 +29,20 @@ from semantic_kernel.connectors.ai.open_ai import (
 )  # for OpenAI chat completion
 
 
+class BookTravelPlugin:
+    """Plugin to handle travel booking tasks."""
+
+    @kernel_function(
+        name="book_flight", description="Books a flight on a given date and location."
+    )
+    def book_flight(
+        self,
+        date: Annotated[str, "The date of the flight."],
+        location: Annotated[str, "The destination location."],
+    ) -> str:
+        return f"Flight booked to {location} on {date}."
+
+
 class DestinationPlugin:
     """Plugin to handle destination-related tasks."""
 
@@ -53,6 +67,7 @@ class DestinationPlugin:
         self.latest_destination = None
 
     """ The @kernel_function decorator registers the function as a kernel function for the agent to recognize. """
+
     @kernel_function(description="Provides a random vacation destination.")
     def get_random_destination(
         self,
@@ -98,7 +113,8 @@ A kernel is a collection of the services and plugins that will be used by your A
 In this snippet, we are creating the kernel and adding the chat_completion_service to it.
 """
 kernel = Kernel()
-kernel.add_plugin(DestinationPlugin(), plugin_name="destinations")
+kernel.add_plugin(BookTravelPlugin(), plugin_name="book_travel")
+kernel.add_plugin(DestinationPlugin(), plugin_name="select_destination")
 kernel.add_service(chat_completion_service)
 
 print("Kernel initialized with chat completion service.")
@@ -114,6 +130,8 @@ AGENT_INSTRUCTIONS = "You are a helpful AI Agent that can help plan vacations fo
 settings = kernel.get_prompt_execution_settings_from_service_id(
     service_id=service_id,  # The service ID of the chat completion service
 )
+
+# Define the request settings to configure the model with auto-function calling
 settings.function_choice_behavior = FunctionChoiceBehavior.Auto()
 
 agent = ChatCompletionAgent(
@@ -135,6 +153,8 @@ async def main():
     user_inputs = [
         "Plan me a day trip.",
         "I don't like that destination. Plan me another vacation.",
+        "I want to book a flight to the destination you suggested, on the next Friday.",
+        "Actually, I am busy then. Book me a flight to the destination you suggested, on the next Saturday.",
     ]
 
     for user_input in user_inputs:
@@ -143,9 +163,9 @@ async def main():
         chat_history.add_user_message(user_input)
 
         # Print user input
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print(f"User: {user_input}")
-        print("="*50)
+        print("=" * 50)
 
         agent_name: str | None = None
         full_response = ""
@@ -191,7 +211,8 @@ async def main():
         # Print agent response
         print(f"\n{agent_name or 'Assistant'}:")
         print(full_response)
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
